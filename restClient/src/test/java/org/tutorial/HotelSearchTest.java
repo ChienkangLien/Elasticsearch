@@ -1,6 +1,7 @@
 package org.tutorial;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.http.HttpHost;
@@ -13,6 +14,10 @@ import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.Aggregations;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms.Bucket;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
 import org.elasticsearch.search.sort.SortOrder;
@@ -97,6 +102,29 @@ public class HotelSearchTest {
 		SearchResponse response = client.search(request, RequestOptions.DEFAULT);
 		// 4.解析結果
 		handleResponse(response);
+	}
+	
+	@Test
+	void testAggregation() throws IOException {
+		// 1.創建Request 物件
+		SearchRequest request = new SearchRequest("hotel");
+		// 2.準備DSL
+		request.source().size(0);
+		request.source().aggregation(AggregationBuilders
+				.terms("brandAgg")
+				.field("brand")
+				.size(10)
+		);
+		// 3.發送請求
+		SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+		// 4.解析結果
+		Aggregations aggregations = response.getAggregations();
+		Terms brandTerms = aggregations.get("brandAgg");
+		List<? extends Bucket> buckets = brandTerms.getBuckets();
+		for (Bucket bucket : buckets) {
+			String key = bucket.getKeyAsString();
+			System.out.println(key);
+		}
 	}
 
 	@BeforeEach
