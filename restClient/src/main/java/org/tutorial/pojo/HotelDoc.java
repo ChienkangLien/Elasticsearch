@@ -17,6 +17,8 @@ public class HotelDoc {
 	private String business;
 	private String location;
 	private String pic;
+	private Object distance;
+	private Boolean isAD;
 
 	public HotelDoc(Hotel hotel) {
 		super();
@@ -31,6 +33,7 @@ public class HotelDoc {
 		this.business = hotel.getBusiness();
 		this.location = hotel.getLongitude() + ", " + hotel.getLatitude();
 		this.pic = hotel.getPic();
+		this.isAD = hotel.getIsAD() == 1 ? true : false;
 	}
 
 }

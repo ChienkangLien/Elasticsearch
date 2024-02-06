@@ -47,5 +47,8 @@ public class Hotel {
 
     @Column(name = "pic")
     private String pic;
+    
+    @Column(name = "isAD")
+    private Integer isAD;
 
 }
