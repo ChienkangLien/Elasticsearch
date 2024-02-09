@@ -1,5 +1,8 @@
 package org.tutorial.pojo;
 
+import java.util.Arrays;
+import java.util.List;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -19,6 +22,7 @@ public class HotelDoc {
 	private String pic;
 	private Object distance;
 	private Boolean isAD;
+	private List<String> suggestion; // 品牌和商圈加入自動補全功能
 
 	public HotelDoc(Hotel hotel) {
 		super();
@@ -34,6 +38,7 @@ public class HotelDoc {
 		this.location = hotel.getLongitude() + ", " + hotel.getLatitude();
 		this.pic = hotel.getPic();
 		this.isAD = hotel.getIsAD() == 1 ? true : false;
+		this.suggestion = Arrays.asList(this.brand, this.business);
 	}
 
 }

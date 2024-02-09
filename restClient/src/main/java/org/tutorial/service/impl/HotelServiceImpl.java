@@ -24,6 +24,11 @@ import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms.Bucket;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
+import org.elasticsearch.search.suggest.Suggest;
+import org.elasticsearch.search.suggest.SuggestBuilder;
+import org.elasticsearch.search.suggest.SuggestBuilders;
+import org.elasticsearch.search.suggest.Suggest.Suggestion.Entry.Option;
+import org.elasticsearch.search.suggest.completion.CompletionSuggestion;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.tutorial.pojo.HotelDoc;
@@ -69,6 +74,63 @@ public class HotelServiceImpl implements HotelService {
 			// 4.解析結果
 			response = client.search(request, RequestOptions.DEFAULT);
 			return handleResponse(response);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
+	public Map<String, List<String>> filters(RequestParams params) {
+		Map<String, List<String>> result = new HashMap<>();
+		try {
+			// 1.創建Request 物件
+			SearchRequest request = new SearchRequest("hotel");
+			// 2.準備DSL
+			buildBasicQuery(params, request);
+			request.source().size(0);
+			buildAggregation(request);
+			// 3.發送請求
+			SearchResponse response;
+			response = client.search(request, RequestOptions.DEFAULT);
+			// 4.解析結果
+			Aggregations aggregations = response.getAggregations();
+			List<String> brandList = getAggByName(aggregations, "brandAgg");
+			result.put("品牌", brandList);
+			List<String> cityList = getAggByName(aggregations, "cityAgg");
+			result.put("城市", cityList);
+			List<String> starList = getAggByName(aggregations, "starAgg");
+			result.put("星級", starList);
+			return result;
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	@Override
+	public List<String> getSuggestions(String prefix) {
+		List<String> list = new ArrayList<>();
+		try {
+			// 1.創建Request 物件
+			SearchRequest request = new SearchRequest("hotel");
+			// 2.準備DSL
+			request.source().suggest(new SuggestBuilder().addSuggestion(
+					"mySuggestions", 
+					SuggestBuilders.completionSuggestion("suggestion")
+					.prefix(prefix)
+					.skipDuplicates(true)
+					.size(10)
+				));
+			// 3.發送請求
+			SearchResponse response;
+			response = client.search(request, RequestOptions.DEFAULT);
+			// 4.解析結果
+			Suggest suggest = response.getSuggest();
+			CompletionSuggestion suggestions = suggest.getSuggestion("mySuggestions");
+			List<CompletionSuggestion.Entry.Option> options = suggestions.getOptions();
+			for (Option option : options) {
+				list.add(option.getText().toString());
+			}
+			return list;
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -121,33 +183,7 @@ public class HotelServiceImpl implements HotelService {
 
 		request.source().query(functionScoreQuery);
 	}
-
-	@Override
-	public Map<String, List<String>> filters() {
-		Map<String, List<String>> result = new HashMap<>();
-		try {
-			// 1.創建Request 物件
-			SearchRequest request = new SearchRequest("hotel");
-			// 2.準備DSL
-			request.source().size(0);
-			buildAggregation(request);
-			// 3.發送請求
-			SearchResponse response;
-			response = client.search(request, RequestOptions.DEFAULT);
-			// 4.解析結果
-			Aggregations aggregations = response.getAggregations();
-			List<String> brandList = getAggByName(aggregations, "brandAgg");
-			result.put("品牌", brandList);
-			List<String> cityList = getAggByName(aggregations, "cityAgg");
-			result.put("城市", cityList);
-			List<String> starList = getAggByName(aggregations, "starAgg");
-			result.put("星級", starList);
-			return result;
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
+	
 	private PageResult handleResponse(SearchResponse response) throws JsonMappingException, JsonProcessingException {
 		SearchHits searchHits = response.getHits();
 		long total = searchHits.getTotalHits().value;
@@ -196,5 +232,4 @@ public class HotelServiceImpl implements HotelService {
 				.size(10)
 			);
 	}
-
 }

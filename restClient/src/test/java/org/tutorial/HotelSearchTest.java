@@ -21,6 +21,11 @@ import org.elasticsearch.search.aggregations.bucket.terms.Terms.Bucket;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
 import org.elasticsearch.search.sort.SortOrder;
+import org.elasticsearch.search.suggest.Suggest;
+import org.elasticsearch.search.suggest.Suggest.Suggestion.Entry.Option;
+import org.elasticsearch.search.suggest.SuggestBuilder;
+import org.elasticsearch.search.suggest.SuggestBuilders;
+import org.elasticsearch.search.suggest.completion.CompletionSuggestion;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -124,6 +129,29 @@ public class HotelSearchTest {
 		for (Bucket bucket : buckets) {
 			String key = bucket.getKeyAsString();
 			System.out.println(key);
+		}
+	}
+	
+	@Test
+	void testSuggest() throws IOException {
+		// 1.創建Request 物件
+		SearchRequest request = new SearchRequest("hotel");
+		// 2.準備DSL
+		request.source().suggest(new SuggestBuilder().addSuggestion(
+				"mySuggestions", 
+				SuggestBuilders.completionSuggestion("suggestion")
+				.prefix("中")
+				.skipDuplicates(true)
+				.size(10)
+			));
+		// 3.發送請求
+		SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+		// 4.解析結果
+		Suggest suggest = response.getSuggest();
+		CompletionSuggestion suggestions = suggest.getSuggestion("mySuggestions");
+		List<CompletionSuggestion.Entry.Option> options = suggestions.getOptions();
+		for (Option option : options) {
+			System.out.println(option.getText().toString());
 		}
 	}
 
